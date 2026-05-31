@@ -28,4 +28,12 @@ int main(){
 
     void (*p1)(int) = f; //will it work? here type of f is not defined and depends on what we have on the left side. how does it work?
     //if function is not defined - we cant take it address -> we will get linker exception 
+
+    void (*pfa[10])(int); //arrays of 10 pointers to functions which take in and return void 
+
+    void (*(*pfas[10]))(int);
+
+    //fpmc is array of arrays of 8 poiners to pointer to function returning pointer ti array of pointer to char
+    char * (*(**fpmc[][8])())[] = {0};
+
 }
