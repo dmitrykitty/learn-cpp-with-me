@@ -2,6 +2,9 @@
 
 using namespace std;
 
+/*
+Another possible way is to use sorting 
+*/
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(0);
