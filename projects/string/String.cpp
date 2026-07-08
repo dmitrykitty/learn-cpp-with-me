@@ -1,22 +1,18 @@
 #include "String.h"
 #include <cstring>
 #include <cctype>
+#include <cassert>
 #include <algorithm>
 
 //-----------------------PUBLIC--------------------------
 
 String::String(): size_(0), capacity_(0), data_(new char[1]{'\0'}) {}
 
-String::String(const char* arr): size_(strlen(arr)), capacity_(size_), data_(new char[capacity_ + 1]) {
-    if(arr == nullptr) {
-        data_ = new char[1]{'\0'}; 
-        return;
-    }
-    size_ = strlen(arr);
-    capacity_ = size_; 
-    data_ = new char[capacity_ + 1]; 
+String::String(const char* arr): size_(arr == nullptr ? 0 : strlen(arr)), capacity_(size_), data_(new char[capacity_ + 1]) {
     data_[size_] = '\0'; 
-    memcpy(data_, arr, size_);
+    if(arr != nullptr) {
+        memcpy(data_, arr, size_);
+    }
 }
 
 String::String(size_t n, char c): size_(n), capacity_(size_), data_(new char[capacity_ + 1]) {
@@ -56,6 +52,44 @@ void String::clear() {
     data_[0] = '\0';
 }
 
+void String::pop_back() {
+    assert(size_ > 0); 
+    --size_;
+    data_[size_] = '\0';
+}
+
+void String::shrink_to_fit() {
+    if(size_ == capacity_) {
+        return;
+    }
+    char* new_data = new char[size_ + 1];
+    memcpy(new_data, data_, size_ + 1); 
+    delete[] data_; 
+
+    data_ = new_data;
+    capacity_ = size_; 
+}
+
+char& String::back() {
+    assert(size_ > 0);
+    return data_[size_ - 1];
+}
+
+const char& String::back() const {
+    assert(size_ > 0);
+    return data_[size_ - 1];
+}
+
+char& String::front() {
+    assert(size_ > 0);
+    return data_[0];
+}
+
+const char& String::front() const {
+    assert(size_ > 0);
+    return data_[0];
+}
+
 //Copy and Swap idiom
 String& String::operator=(String other_copy) {
     swap(other_copy);
@@ -88,7 +122,7 @@ void String::push_back(char c) {
 
 //-------------------------PRIVATE-------------------------------
 
-void String::swap(String& other) {
+void String::swap(String& other) noexcept {
     std::swap(size_, other.size_);
     std::swap(capacity_, other.capacity_);
     std::swap(data_, other.data_);

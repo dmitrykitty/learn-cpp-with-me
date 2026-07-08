@@ -25,6 +25,15 @@ public:
     void push_back(char c); 
     void reserve(std::size_t); 
     void clear();
+    void pop_back(); 
+    void shrink_to_fit(); 
+    const char& front() const;
+    char& front(); 
+    const char& back() const; 
+    char& back();  
+
+    std::size_t find(const String&) const;
+    std::size_t rfind(const String&) const; 
 
     std::size_t size() const {
       return size_; 
