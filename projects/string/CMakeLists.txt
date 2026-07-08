@@ -1,5 +1,7 @@
 # cmake -S . -B build
 # cmake --build build
+# -S .       # source directory is current directory
+# -B build   # build directory is ./build
 
 cmake_minimum_required(VERSION 3.24)
 project(MyString LANGUAGES CXX)

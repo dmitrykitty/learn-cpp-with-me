@@ -32,7 +32,7 @@ public:
     const char& back() const; 
     char& back();  
 
-    std::size_t find(const String&) const;
+    int find(const String&) const;
     std::size_t rfind(const String&) const; 
 
     std::size_t size() const {
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    void swap(String&);
+    void swap(String&) noexcept;
 };
 
 String operator+(String s1, const String& s2); 

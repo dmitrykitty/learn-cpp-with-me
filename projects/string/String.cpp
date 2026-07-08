@@ -90,6 +90,25 @@ const char& String::front() const {
     return data_[0];
 }
 
+int String::find(const String& substr) const {
+    if (substr.size() == 0) {
+        return 0;
+    }
+    if (substr.size() > size_) {
+        return -1;
+    }
+    for(std::size_t i = 0; i < size_; ++i) {
+        std::size_t j = 0;
+        while (j < substr.size() && data_[i + j] == substr[j]) {
+            ++j;
+        }
+        if (j == substr.size()) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1; 
+}
+
 //Copy and Swap idiom
 String& String::operator=(String other_copy) {
     swap(other_copy);
