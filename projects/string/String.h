@@ -33,7 +33,9 @@ public:
     char& back();  
 
     int find(const String&) const;
-    std::size_t rfind(const String&) const; 
+    int rfind(const String&) const; 
+    String substr(std::size_t, std::size_t) const;
+
 
     std::size_t size() const {
       return size_; 

@@ -109,6 +109,47 @@ int String::find(const String& substr) const {
     return -1; 
 }
 
+int String::rfind(const String& substr) const {
+    if (substr.empty()) {
+        return static_cast<int>(size_);
+    }
+
+    if (substr.size() > size_) {
+        return -1;
+    }
+
+    std::size_t i = size_ - substr.size();
+
+    while (true) {
+        std::size_t j = 0;
+        while (j < substr.size() && data_[i + j] == substr[j]) {
+            ++j;
+        }
+        if (j == substr.size()) {
+            return static_cast<int>(i);
+        }
+        if (i == 0) {
+            break;
+        }
+        --i;
+    }
+}
+
+String String::substr(std::size_t left, std::size_t n) const { 
+    String res; 
+    if(left >= size_ || n == 0) {
+        return res; 
+    }
+    std::size_t sz = std::min(n, size_ - left);
+    res.reserve(sz);
+    while(left < size_ && n > 0) {
+        res.push_back(data_[left]); 
+        left++; 
+        n--;
+    }
+    return res;
+}
+
 //Copy and Swap idiom
 String& String::operator=(String other_copy) {
     swap(other_copy);
