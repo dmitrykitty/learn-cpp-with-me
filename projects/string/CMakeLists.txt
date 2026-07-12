@@ -33,11 +33,18 @@ target_include_directories(${LIB_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_options(${LIB_NAME} 
+target_compile_options(${LIB_NAME}
     PRIVATE
         -Wall
         -Wextra
         -Wpedantic
+        -fsanitize=address
+        -fno-omit-frame-pointer
+)
+
+target_link_options(${LIB_NAME}
+    PRIVATE
+        -fsanitize=address
 )
 
 #=================DOWNLOAD GTESTS======================
@@ -78,7 +85,15 @@ target_compile_options(${EX_TEST_NAME}
         -Wall
         -Wextra
         -Wpedantic
+        -fsanitize=address
+        -fno-omit-frame-pointer
 )
+
+target_link_options(${EX_TEST_NAME}
+    PRIVATE
+        -fsanitize=address
+)
+
 
 # add_test(
 #     NAME ${EX_TEST_NAME}
