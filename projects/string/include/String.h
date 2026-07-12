@@ -43,6 +43,10 @@ public:
       return size_; 
     }
 
+    const char* c_str() const {
+      return data_;
+    }
+
     bool empty() const {
       return size_ == 0; 
     }
