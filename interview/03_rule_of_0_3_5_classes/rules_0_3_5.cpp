@@ -50,15 +50,17 @@ public:
     }
 
     //copy and swap idiom
+    //no need to compare with this 
+    //exception safe (do not throw)
     B_3& operator=(B_3 o) {
         swap(*this, o);
         return *this;
     }
 
-    void swap(B_3& ts, B_3& o) {
-        std::swap(ts.name, o.name);
-        std::swap(ts.sz, o.sz);
-        std::swap(ts.data, o.data);
+    void swap(B_3& o)noexcept {
+        std::swap(name, o.name);
+        std::swap(sz, o.sz);
+        std::swap(data, o.data);
     }
 
     ~B_3() {
@@ -66,9 +68,14 @@ public:
     }
 };
 
+//copy functions are undependent 
+//writing one does not prevent of generating other 
+//move functions stacked together, so both or noont of them is generated
 
 void rule_3() {
     B_3 b1(std::string("name"), 3, new int[]{1, 2, 3});
+    //pointer to member
+    void (B_3::*ps)(B_3&) = &B_3::swap;
     B_3 b2(b1);
     b1 = b2; 
     B_3 b4(std::move(b2)); //want be generated, copy called bind from B&& -> const B&
