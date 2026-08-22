@@ -31,9 +31,6 @@ int main() {
     for(auto& [mn, mx] : v){
         int cur_diff = mx - mn; 
         int real_diff = min(cur_diff, expected_diff); 
-
-        mx -= real_diff; 
-
         mx -= real_diff;
         expected_diff -= real_diff;
 
