@@ -145,7 +145,6 @@ namespace EX4 {
     }; 
 
     struct C: A, B {
-
     };
 
     void ff(int x){ std::cout << x; }
