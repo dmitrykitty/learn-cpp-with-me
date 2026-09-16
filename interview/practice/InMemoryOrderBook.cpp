@@ -23,6 +23,13 @@ struct Order {
     int quantity;
 };
 
+struct Trade {
+    OrderId buy_id;
+    OrderId sell_id;
+    int price;
+    int quantity;
+};
+
 struct OrderMeta{
     Order order;
     std::list<OrderId>::iterator pos; 
@@ -39,17 +46,95 @@ class OrderBook {
     }
 
 public:
-    //O(logN)
-    void addOrder(const Order& order) {
-        auto& order_map = get_orders_by_side(order.side);
-        auto& lst = order_map[order.price]; //O(logN)
+    //O(log P + T)
+    //if incoming BUY.price >= bestAsk -> BUY
+    //if SELL.prcie <= bestBid -> SELL
+    //best price -> oldest order (price-time priority)
+    //example
+    /*
+    inside book:
+    SELL:
+    100 -> [id=1 qty=5]
+    101 -> [(id=2 qty=10), (id=3 qty=8)]
 
-        lst.push_back(order.id); //O(1)
-        auto last_pos = lst.end();
-        last_pos--; 
+    incoming Order{4, Side::Buy, 101, 12}
 
-        orders.emplace(order.id, OrderMeta{.order = order, .pos = last_pos}); //O(1)
+    return {    Trade{buy=4, sell=1, price=100, quantity=5, 
+                Trade{buy=4, sell=2, price=101, quantity=7}     }
+
+    inside book:
+    SELL:
+    101 -> [(id=2 qty=3), (id=3 qty=8)]
+    */
+    std::vector<Trade> addOrder(const Order& order) {
+        return order.side == Side::Buy ? complete_bs_trade(order) : complete_sb_trade(order);
     }
+
+private:
+    std::vector<Trade> complete_bs_trade(const Order& order) {
+        std::vector<Trade> trades; 
+        int quantity_left = order.quantity;
+
+        for(auto it = sell_orders_.begin(); it != sell_orders_.end(); ) {
+            int price = it->first; 
+            std::list<OrderId>& orders_ids = it->second; 
+
+            if(price > order.price) {
+                break;
+            }
+
+            while(quantity_left != 0 && !orders_ids.empty()) {
+                auto id = orders_ids.front(); 
+                auto& order_meta = orders[id]; 
+                if(order_meta.order.quantity >= quantity_left) {
+                    trades.emplace_back(order.id, order_meta.order.id, price, quantity_left); 
+                    if(order_meta.order.quantity != quantity_left) {
+                        order_meta.order.quantity-= quantity_left; 
+                    } else {
+                        orders_ids.pop_front(); 
+                        orders.erase(id);
+                    }
+                    quantity_left = 0;
+                    break;
+                } else {
+                    trades.emplace_back(order.id, order_meta.order.id, price, order_meta.order.quantity);
+                    quantity_left -= order_meta.order.quantity;
+                    orders_ids.pop_front(); 
+                    orders.erase(id);
+                }
+            }
+            if(orders_ids.empty()) {
+                //returns next after erased
+                it = sell_orders_.erase(it); 
+            } else {
+                it++;
+            }
+
+            if(quantity_left == 0) {
+                return trades;
+            }
+        }
+
+        if(quantity_left != 0) {
+            Order order_to_add{order.id, order.side, order.price, quantity_left};
+            addOrderToMaps(order_to_add);
+        }
+
+        return trades;
+    }
+
+    void addOrderToMaps(const Order& order) {
+        auto& order_map = order.side == Side::Buy ? buy_orders_ : sell_orders_; 
+        auto& lst_orders = order_map[order.price]; 
+        lst_orders.push_back(order.id); 
+        auto last_added = lst_orders.end();
+        last_added--;
+        orders.emplace(order.id, OrderMeta{order, last_added}); 
+    } 
+
+
+
+public:
 
     //O(1)
     std::optional<int> bestBid() const {
