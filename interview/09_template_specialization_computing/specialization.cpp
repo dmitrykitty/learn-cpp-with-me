@@ -10,7 +10,6 @@ class A {
 };
 
 //partial specialization
-//ambigious template instantation - generatig code from template
 template<typename T>
 class A<T, int> {
     T* data; 
@@ -30,9 +29,19 @@ class A<int, double> {
     double value; 
 }; 
 
+// ALSO SPECIALIZATION
+//--------------------------------------
+template <typename T>
+class S {}; 
+
+template <typename T>
+class S<T&>{ /*other logic*/ };
+
+template <typename T>
+class S<const T>{ /* other logic*/ };
 
 
 
 int main() {
-    A<int, int> a;
+    A<int, double> a;
 }

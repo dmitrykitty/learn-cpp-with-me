@@ -2,10 +2,23 @@
 #include <limits>
 
 //Main rule - more specific function is more preferable 
+//instantation - generatig specialization by compiler from template and template's arguments
+//implicit - compiler decide what specialization be generated
+//explicit - you can ask to generate this specialization 
+//instantiation is lazy - so until you use bad example - no CE occured
+
 template <typename T>
 void f(T x) {
     std::cout << 1;
 }
+
+template 
+void f<int>(int x); //explicit instantiation
+
+template <>
+void f<int>(int x) {} //explicit specialization
+
+
 
 void f(int x) {
     std::cout << 2;
