@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <list>
 #include <vector>
+#include <assert.h>
 
 using OrderId = std::uint64_t;
 
@@ -191,24 +192,98 @@ public:
 };
 
 int main() {
+
+    
     OrderBook book;
 
+    //Non crossing 
     book.add_order(Order{1, Side::Buy, 100, 10});
     book.add_order(Order{2, Side::Buy, 105, 20});
-    book.add_order(Order{3, Side::Sell, 110, 5});
-    book.add_order(Order{4, Side::Sell, 108, 7});
+    auto v1 = book.add_order(Order{3, Side::Sell, 110, 5});
+    auto v2 = book.add_order(Order{4, Side::Sell, 108, 7});
+    assert(v1.empty());
+    assert(v2.empty());
+    assert(book.best_bid() == 105);
+    assert(book.best_ask() == 108);
 
-    if (auto bid = book.best_bid()) {
-        std::cout << "Best bid: " << *bid << '\n';
-    } else {
-        std::cout << "No bids\n";
-    }
+    std::cout << "Non-crossing: OK\n";
 
-    if (auto ask = book.best_ask()) {
-        std::cout << "Best ask: " << *ask << '\n';
-    } else {
-        std::cout << "No asks\n";
-    }
+    book = OrderBook(); 
 
+    //Exact match
+    book.add_order(Order{1, Side::Buy, 100, 10});
+    auto v = book.add_order(Order{2, Side::Sell, 100, 10});
+    assert(v.size() == 1); 
+    assert(v[0].quantity == 10 && v[0].buy_id == 1 && v[0].sell_id == 2);
+    assert(book.best_ask() == std::nullopt);
+    assert(book.best_bid() == std::nullopt);
+
+    std::cout << "Exact match: OK\n";
+
+
+    //Partial fill resting order
+    book = OrderBook(); 
+    book.add_order(Order{1, Side::Sell, 90, 10});
+    v = book.add_order(Order{2, Side::Buy, 110, 5});
+    assert(v.size() == 1); 
+    assert(v[0].quantity == 5 && v[0].buy_id == 2 && v[0].sell_id == 1);
+    assert(book.best_ask() == 90);
+    assert(book.best_bid() == std::nullopt);
+
+    std::cout << "Partial fill resting order: OK\n";
+
+    //Partial fill incoming order
+    book = OrderBook(); 
+    book.add_order(Order{1, Side::Sell, 90, 5});
+    v = book.add_order(Order{2, Side::Buy, 110, 10});
+    assert(v.size() == 1); 
+    assert(v[0].quantity == 5 && v[0].buy_id == 2 && v[0].sell_id == 1);
+    assert(book.best_ask() == std::nullopt);
+    assert(book.best_bid() == 110);
+
+    std::cout << "Partial fill incoming order: OK\n";
+
+
+    //Multiple price levels
+    book = OrderBook(); 
+    book.add_order(Order{1, Side::Sell, 90, 5});
+    book.add_order(Order{2, Side::Sell, 91, 3});
+    book.add_order(Order{3, Side::Sell, 93, 5});
+    v = book.add_order(Order{4, Side::Buy, 92, 15});
+    assert(v.size() == 2); 
+    assert(v[0].quantity == 5 && v[0].buy_id == 4 && v[0].sell_id == 1);
+    assert(v[1].quantity == 3 && v[1].buy_id == 4 && v[1].sell_id == 2);
+    assert(book.best_ask() == 93);
+    assert(book.best_bid() == 92);
+
+    std::cout << "Multiple price levels: OK\n";
+
+    //Cancel multiple orders
+    book = OrderBook(); 
+    book.add_order(Order{1, Side::Sell, 90, 5});
+    book.add_order(Order{2, Side::Sell, 90, 6});
+    book.add_order(Order{3, Side::Sell, 95, 5});
+    book.add_order(Order{4, Side::Buy, 92, 15});
+    assert(!book.cancel_order(1) && !book.cancel_order(2));
+    assert(book.best_ask() == 95);
+    assert(book.cancel_order(3));
+    assert(book.best_ask() == std::nullopt);
+
+    std::cout << "Cancel multiple orders: OK\n";
+
+    //Multiple orders with the same price
+    book = OrderBook(); 
+    book.add_order(Order{1, Side::Sell, 90, 5});
+    book.add_order(Order{2, Side::Sell, 90, 6});
+    book.add_order(Order{3, Side::Sell, 90, 5});
+    v = book.add_order(Order{4, Side::Buy, 92, 15});
+    assert(v.size() == 3); 
+    assert(v[0].quantity == 5 && v[0].buy_id == 4 && v[0].sell_id == 1);
+    assert(v[1].quantity == 6 && v[1].buy_id == 4 && v[1].sell_id == 2);
+    assert(v[2].quantity == 4 && v[2].buy_id == 4 && v[2].sell_id == 3);
+    assert(book.best_ask() == 90);
+    assert(book.best_bid() == std::nullopt);
+
+    std::cout << "Multiple orders with same prices: OK\n";
     return 0;
 }
