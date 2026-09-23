@@ -10,6 +10,7 @@
  * V2 - using allocator and allocator traits for raw storage management
  * V3 - support for move only objects, for example unique_ptr. Two separate overloaded function push(const T&) and push(T&&)
  * V4 - perfect forwarding support
+ * V5 - move constructor and move assignment operator provided
  */
 
 using size_type = std::size_t;
@@ -34,7 +35,16 @@ class CircularBuffer {
     //later we can change it into (cur + 1) & (cap - 1) <-- mask 
     size_type next(size_type cur) const {
         return (cur + 1) % capacity_;
-    } 
+    }
+
+    void swap(CircularBuffer& other) noexcept{
+        std::swap(buffer_, other.buffer_);
+        std::swap(head_, other.head_);
+        std::swap(tail_, other.tail_);
+        std::swap(size_, other.size_);
+        std::swap(capacity_, other.capacity_);
+        std::swap(alloc_, other.alloc_);
+    }
 
 public: 
     explicit CircularBuffer(size_type capacity){
@@ -45,14 +55,30 @@ public:
         capacity_ = capacity; 
     }
     CircularBuffer(const CircularBuffer&) = delete;
-    CircularBuffer& operator=(const CircularBuffer&) = delete;
+
+    CircularBuffer(CircularBuffer&& other) noexcept :
+        buffer_(std::exchange(other.buffer_, nullptr)),
+        head_(std::exchange(other.head_, 0)),
+        tail_(std::exchange(other.tail_, 0)),
+        size_(std::exchange(other.size_, 0)),
+        capacity_(std::exchange(other.capacity_, 0)),
+        alloc_(std::move(other.alloc_)) {}
+
+    //move and copy (if it is not deleted) assignment operators
+    CircularBuffer& operator=(CircularBuffer other) noexcept {
+        swap(other);
+        return *this;
+    }
 
     ~CircularBuffer() {
         for (size_type i = 0; i < size_; ++i) {
             Traits::destroy(alloc_, buffer_ + head_);
             head_ = next(head_);
         }
-        Traits::deallocate(alloc_, buffer_, capacity_);
+        //we can assume that deallocate(alloc_, nullptr, 0) will not work
+        if (buffer_ != nullptr) {
+            Traits::deallocate(alloc_, buffer_, capacity_);
+        }
     }
 
     //tail moved
@@ -155,6 +181,10 @@ public:
     size_type tail() const {
         return tail_;
     }
+
+    T* buffer() const {
+        return buffer_;
+    }
 };
 
 
@@ -211,16 +241,31 @@ int main() {
     assert(result.has_value());
     assert(*result.value() == 5);
 
-    CircularBuffer<Order> orders(5);
+    CircularBuffer<Order> ordersA(5);
 
     std::string symbol = "NVDA";
-    auto qty = std::make_unique<int>(100);
+    auto qty1 = std::make_unique<int>(100);
+    auto qty2 = std::make_unique<int>(100);
 
-    orders.emplace(
+    ordersA.emplace(
         42,
         symbol,             // lvalue -> copy string
-        std::move(qty)      // rvalue -> move unique_ptr
+        std::move(qty1)      // rvalue -> move unique_ptr
     );
+    ordersA.emplace(
+        43,
+        symbol,             // lvalue -> copy string
+        std::move(qty2)      // rvalue -> move unique_ptr
+    );
+
+    CircularBuffer<Order> ordersB(std::move(ordersA));
+    assert(qty1 == nullptr && qty2 == nullptr);
+    assert(ordersB.size() == 2);
+    assert(ordersB.front().id == 42);
+    assert(ordersA.empty());
+    assert(ordersA.buffer() == nullptr);
+
+
 
 
 
