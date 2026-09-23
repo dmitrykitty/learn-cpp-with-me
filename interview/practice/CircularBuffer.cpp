@@ -3,11 +3,13 @@
 #include <memory>
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 
 /*
- * V1 - vector as field, need to call default constructor for each T object during initialization
- * V2 - using allocator and allocator traits for row pointer
- *
+ * V1 - vector as field + head/tail/size, need to call default constructor for each T object during initialization
+ * V2 - using allocator and allocator traits for raw storage management
+ * V3 - support for move only objects, for example unique_ptr. Two separate overloaded function push(const T&) and push(T&&)
+ * V4 -
  */
 
 using size_type = std::size_t;
@@ -54,13 +56,28 @@ public:
     }
 
     //tail moved
+    //for copyable objects
     bool push(const T& value) {
         if(full()) {
             return false; 
         }
 
-        Traits::construct(alloc_, buffer_ + tail_, value);
+        Traits::construct(alloc_, buffer_ + tail_, value); //copy
         tail_ = next(tail_); 
+        size_++;
+        return true;
+    }
+
+    //rvalue overload
+    //T&& is rvalue reference, but it has name, name is expression-lvalue
+    //so we need to cast value to rvalue
+    bool push(T&& value) {
+        if(full()) {
+            return false;
+        }
+
+        Traits::construct(alloc_, buffer_ + tail_, std::move(value));
+        tail_ = next(tail_);
         size_++;
         return true;
     }
@@ -72,7 +89,7 @@ public:
         }
 
         //head is moved forward
-        T cur = buffer_[head_];
+        T cur = std::move(buffer_[head_]); //completely new object
         Traits::destroy(alloc_, buffer_ + head_);
         head_ = next(head_); 
         size_--; 
@@ -146,4 +163,18 @@ int main() {
     assert(buff.pop().value() == 5);
     assert(!buff.pop().has_value());
     assert(buff.empty());
+
+    CircularBuffer<std::unique_ptr<int>> b(50);
+    auto p = std::make_unique<int>(5); //p -lvalue
+    b.push(std::move(p)); //no copy, so make p rvalue
+    assert(b.size() == 1);
+    assert(*b.front() == 5);
+    assert(p == nullptr);
+
+    const auto result = b.pop();
+    assert(result.has_value());
+    assert(*result.value() == 5);
+
+
+
 }
