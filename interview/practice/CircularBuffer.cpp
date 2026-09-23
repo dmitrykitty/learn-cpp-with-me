@@ -9,7 +9,7 @@
  * V1 - vector as field + head/tail/size, need to call default constructor for each T object during initialization
  * V2 - using allocator and allocator traits for raw storage management
  * V3 - support for move only objects, for example unique_ptr. Two separate overloaded function push(const T&) and push(T&&)
- * V4 -
+ * V4 - perfect forwarding support
  */
 
 using size_type = std::size_t;
@@ -82,6 +82,31 @@ public:
         return true;
     }
 
+    //we don't want each time to create temp object just to path it as param to push function by creating extra copy
+    //so we introduce template function with Args of which object T is created ( T(arg1, arg2, ...))
+    // std::forward preserves the original value category of each forwarded argument
+    //perfect forwarding / universal references
+    //What needed:
+    //  1) template function
+    //  2) template param has &&
+    //  3) use of std::forward to move forward true type of the reference
+    template<typename... Args>
+    //Args... - pack of types
+    //args... - pack of objects
+    //for push() T&& comes directly from class, so it just type
+    //here Args&& is template param, so true type of Args is deduced
+    //and thanks to reference collapsing we get true type & or &&
+    bool emplace(Args&&... args) {
+        if(full()) {
+            return false;
+        }
+        //use std::forward for each pair <ArgX, argx>
+        Traits::construct(alloc_, buffer_ + tail_, std::forward<Args>(args)...);
+        tail_ = next(tail_);
+        size_++;
+        return true;
+    }
+
     //head moved
     std::optional<T> pop() {
         if(empty()) {
@@ -133,6 +158,17 @@ public:
 };
 
 
+struct Order {
+    int id;
+    std::string symbol;
+    std::unique_ptr<int> quantity;
+
+    Order(int id, std::string symbol, std::unique_ptr<int> quantity)
+        : id(id),
+          symbol(std::move(symbol)),
+          quantity(std::move(quantity)) {}
+};
+
 //TESTS
 int main() {
     static_assert(sizeof(CircularBuffer<int>) == 40);
@@ -174,6 +210,18 @@ int main() {
     const auto result = b.pop();
     assert(result.has_value());
     assert(*result.value() == 5);
+
+    CircularBuffer<Order> orders(5);
+
+    std::string symbol = "NVDA";
+    auto qty = std::make_unique<int>(100);
+
+    orders.emplace(
+        42,
+        symbol,             // lvalue -> copy string
+        std::move(qty)      // rvalue -> move unique_ptr
+    );
+
 
 
 
