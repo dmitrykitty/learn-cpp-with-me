@@ -40,21 +40,24 @@ int max_adj_sum_memo(const std::vector<int>& nums, std::vector<int>& memo, int n
 }
 
 int max_adj_sum_dp(const std::vector<int>& nums, int n) {
-    if (n == 0) {
-        return 0;
-    }
+    std::vector<int> dp(n + 2, 0); 
 
-    if (n == 1) {
-        return std::max(0, nums[0]);
+    dp[1] = std::max(0, nums[0]); 
+    for(int i = 2; i < n; i++) {
+        dp[i] = std::max(dp[i - 2] + nums[i - 1], dp[i - 1]); 
     }
+    return dp[n + 1]; 
+}
 
-    std::vector<int> dp(n, 0); 
-    dp[0] = std::max(0, nums[0]);
-    dp[1] = std::max(dp[0], nums[1]);
+int max_adj_sum_dp_opt(const std::vector<int>& nums, int n) {
+    int prev2 = 0; //dp[i - 2]
+    int prev1 = 0;//dp[i - 1]
 
-    for(int i = 0; i < n; i++) {
-        dp[i] = std::max(dp[i - 2] + nums[i], dp[i - 1]); 
+    for(int x: nums) {
+        int next = std::max(x + prev2, prev1); 
+        prev2 = prev1; 
+        prev1 = next; 
     }
-    return dp[n - 1]; 
+    return prev1; 
 }
 

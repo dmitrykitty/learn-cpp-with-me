@@ -4,7 +4,11 @@
 
 // solve(i) = maximum score obtainable using pins from i to the end
                     //take      skip            take both
-//transition = max(pin[i], pin[i + 1], pin[i] * pin[i + 1])
+// solve(i) = max(
+//     solve(i + 1),                         // skip
+//     pins[i] + solve(i + 1),              // take one
+//     pins[i] * pins[i + 1] + solve(i + 2) // take both
+// )
 
 int solve_rec(std::vector<int>& pins, int n) {
     if(n >= pins.size()) {
@@ -52,9 +56,6 @@ int solve_dp(const std::vector<int>& pins) {
     int n = pins.size(); 
     std::vector<int> dp(n + 2, 0); 
 
-    dp[0] = 0;
-    dp[1] = std::max(0, pins[0]);  
-
     for(int i = n - 1; i >= 0; --i) {
         int take = pins[i] + dp[i + 1]; 
         int skip = dp[i + 1]; 
@@ -68,11 +69,28 @@ int solve_dp(const std::vector<int>& pins) {
     return dp[0]; 
 }
 
+int solve_dp_opt(const std::vector<int>& pins) {
+    int n = pins.size(); 
+    int next2 = 0; //dp[i + 2]
+    int next1 = 0; //dp[i + 1]
+
+    for(int i = n - 1; i >= 0; --i) {
+        int best = std::max({
+            pins[i] + next1, 
+            next1, 
+            (i < n - 1 ? pins[i] * pins[i + 1] + next2: 0)
+        }); 
+        next2 = next1; 
+        next1 = best; 
+    }
+    return next1; 
+}
+
 
 
 int main() {
     std::vector<int> pins = {
     -1, 1, 1, 1, 9, 9, 3, -3, -5, 2, 2
     };
-    std::cout << solve_rec(pins, 0) << " " << solve_memo(pins) << " " << solve_dp(pins);  
+    std::cout << solve_rec(pins, 0) << " " << solve_memo(pins) << " " << solve_dp(pins) << " " << solve_dp_opt(pins);  
 }

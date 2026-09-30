@@ -31,10 +31,25 @@ long long fib_dp(int n) {
     for(int i = 2; i < n; ++i) {
         dp[i] = dp[i - 1] + dp[i - 2]; 
     }
-    return dp[n];
+    return dp[n - 1];
+}
+
+long long fib_dp_opt(int n) {
+    if(n <= 1) {
+        return n; 
+    }
+    int prev1 = 1; //F(1)
+    int prev2 = 0; //F(0)
+    
+    for(int i = 2; i <= n; ++i) {
+        int next = prev1 + prev2; 
+        prev2 = prev1; 
+        prev1 = next; 
+    }
+    return prev1; 
 }
 
 
 int main() {
-
+    std::cout << fib_dp_opt(12); 
 }
