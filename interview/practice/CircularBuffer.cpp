@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <utility>
+#include <exception>
 
 /*
  * V1 - vector as field + head/tail/size, need to call default constructor for each T object during initialization
@@ -54,8 +55,32 @@ public:
         buffer_ = Traits::allocate(alloc_, capacity);
         capacity_ = capacity; 
     }
-    CircularBuffer(const CircularBuffer&) = delete;
 
+    //RULE OF 5 - non trivial copy constructor
+    CircularBuffer(const CircularBuffer& other): head_(other.head_), tail_(other.head_), size_(other.size_), capacity_(other.capacity_) {
+        size_type copied = 0;
+        try {
+            buffer_ = Traits::allocate(alloc_, capacity_);
+            for(; copied < size_; ++copied) {
+                Traits::construct(alloc_, buffer_ + tail_, other.buffer_[tail_]);
+                tail_ = next(tail_);  
+            }
+        } catch(...) {
+            size_type current = head_;
+            //exception mean that i-th object wasn't created. so we need to destroy all previous [head..i-1]
+            for(size_type destroyed = 0; destroyed < copied; ++destroyed) {
+                Traits::destroy(alloc_, buffer_ + current);
+                current = next(current); 
+            }
+            if(buffer_ != nullptr) {
+                Traits::deallocate(alloc_, buffer_, capacity_); 
+            }
+            throw; 
+        }
+        assert(tail_ == other.tail_); 
+    }
+
+    //RULE OF 5 - non trivial move constructor
     CircularBuffer(CircularBuffer&& other) noexcept :
         buffer_(std::exchange(other.buffer_, nullptr)),
         head_(std::exchange(other.head_, 0)),
@@ -65,11 +90,15 @@ public:
         alloc_(std::move(other.alloc_)) {}
 
     //move and copy (if it is not deleted) assignment operators
+    //after implementing deep copy constructor 
+    //we ccan this operator as copy and move assignment 
+    //RULE OF 5 - non trivial move and copy assignment operator
     CircularBuffer& operator=(CircularBuffer other) noexcept {
         swap(other);
         return *this;
     }
 
+    //RULE OF 5 - non trivial destructor
     ~CircularBuffer() {
         for (size_type i = 0; i < size_; ++i) {
             Traits::destroy(alloc_, buffer_ + head_);
@@ -199,6 +228,16 @@ struct Order {
           quantity(std::move(quantity)) {}
 };
 
+struct Message {
+    int id_; 
+    Message(int id): id_(id) {}
+    Message(const Message& other): id_(other.id_) {
+        if(other.id_ == 42) {
+            throw std::invalid_argument("ups"); 
+        }
+    }
+};
+
 //TESTS
 int main() {
     static_assert(sizeof(CircularBuffer<int>) == 40);
@@ -264,6 +303,24 @@ int main() {
     assert(ordersB.front().id == 42);
     assert(ordersA.empty());
     assert(ordersA.buffer() == nullptr);
+
+
+    CircularBuffer<Message> buf(4); 
+    buf.emplace(1);
+    buf.emplace(2);
+    buf.emplace(42); 
+    buf.emplace(4); 
+
+    assert(buf.size() == 4); 
+    try {
+        CircularBuffer<Message> failed = buf; //should throw exception
+    } catch(std::invalid_argument& e){
+        std::cout << e.what(); 
+        assert(typeid(e) == typeid(std::invalid_argument));
+        assert(e.what() == std::string("ups")); 
+    }
+
+
 
 
 
