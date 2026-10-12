@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <assert.h>
 
 /*
 Requirements:
@@ -27,7 +28,7 @@ struct Node {
     int priority{};
 };
 
-class IndexedMinHeap {
+class IndexedHeap {
     std::vector<Node> heap_;
     std::unordered_map<int, std::size_t> pos_;
 
@@ -60,7 +61,7 @@ class IndexedMinHeap {
     }
 
     void sift_down(std::size_t idx) {
-        std::size_t limit = idx / 2; 
+        std::size_t limit = (heap_.size() - 1) / 2; 
         while(idx < limit) {
             std::size_t max = idx * 2 + 1; 
             std::size_t right = idx * 2 + 2; 
@@ -81,12 +82,27 @@ public:
     void insert(int id, int priority) {
         validate_id_priority(id, priority);
         heap_.push_back({id, priority}); 
-        pos_[heap_.size() - 1] = id;
+        pos_[id] = heap_.size() - 1;
         sift_up(heap_.size() - 1); 
     }
 
-    void update(int id, int newPriority) {
-        validate_id_priority(id, newPriority);
+    void update(int id, int new_priority) {
+        validate_id_priority(id, new_priority);
+
+        auto it = pos_.find(id); 
+        if(it == pos_.end()) {
+            throw std::invalid_argument("no element with provided id exists"); 
+        }
+
+        auto idx = it->second; 
+        auto old_priority = heap_[idx].priority; 
+        heap_[idx].priority = new_priority; 
+
+        if(new_priority > old_priority) {
+            sift_up(idx);
+        } else {
+            sift_down(idx); 
+        }
     }
 
     void erase(int id) {
@@ -140,5 +156,15 @@ public:
 
 
 int main() {
-    
+    IndexedHeap heap; 
+    heap.insert(1, 5);
+    heap.insert(2, 7);
+    heap.insert(3, 2);
+    heap.insert(4, 10);
+    assert(heap.contains(1)); 
+    assert(heap.top().id == 4 && heap.top().priority == 10); 
+    heap.erase(4); 
+    assert(heap.top().id == 2 && heap.top().priority == 7); 
+    heap.insert(5, 15);
+    assert(heap.top().id == 5 && heap.top().priority == 15); 
 }
