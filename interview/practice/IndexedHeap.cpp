@@ -61,7 +61,7 @@ class IndexedHeap {
     }
 
     void sift_down(std::size_t idx) {
-        std::size_t limit = (heap_.size() - 1) / 2; 
+        std::size_t limit = heap_.size() / 2; 
         while(idx < limit) {
             std::size_t max = idx * 2 + 1; 
             std::size_t right = idx * 2 + 2; 
@@ -80,6 +80,9 @@ class IndexedHeap {
 
 public:
     void insert(int id, int priority) {
+        if(pos_.find(id) != pos_.end()) {
+            throw std::invalid_argument("ivalid ID"); 
+        }
         validate_id_priority(id, priority);
         heap_.push_back({id, priority}); 
         pos_[id] = heap_.size() - 1;
@@ -156,6 +159,8 @@ public:
 
 
 int main() {
+
+    //Insert, contains, erase and top check 
     IndexedHeap heap; 
     heap.insert(1, 5);
     heap.insert(2, 7);
@@ -167,4 +172,17 @@ int main() {
     assert(heap.top().id == 2 && heap.top().priority == 7); 
     heap.insert(5, 15);
     assert(heap.top().id == 5 && heap.top().priority == 15); 
+
+    //Update
+    IndexedHeap heap2; 
+    heap2.insert(1, 5);
+    heap2.insert(2, 10);
+    heap2.insert(3, 15);
+    heap2.insert(4, 20);
+    assert(heap2.top().id == 4);
+    heap2.update(2, 30);
+    assert(heap2.top().id == 2);
+    heap2.update(2, 5); 
+    heap2.update(4, 0);
+    assert(heap2.top().id == 3); 
 }
