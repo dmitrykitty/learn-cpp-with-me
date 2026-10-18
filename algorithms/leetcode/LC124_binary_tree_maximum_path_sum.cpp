@@ -33,3 +33,24 @@ public:
         return cur;
     }
 };
+
+class Solution2 {
+public:
+    int maxPathSum(TreeNode* root) {
+       int best_completed = INT_MIN; 
+        return max(maxSum(root, best_completed), best_completed); 
+    }
+
+
+    int maxSum(TreeNode* node, int& best_completed) {
+        if(!node) {
+            return 0; 
+        }
+
+        int left = max(0, maxSum(node->left, best_completed));
+        int right = max(0, maxSum(node->right, best_completed)); 
+        best_completed = max(best_completed, node->val + right + left);
+
+        return node->val + max(left, right);
+    }
+};
