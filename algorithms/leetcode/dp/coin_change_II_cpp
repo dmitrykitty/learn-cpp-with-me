@@ -1,0 +1,29 @@
+#include <bits/stdc++.h>
+
+using namespace std; 
+
+    int change(int amount, vector<int>& coins) {
+        vector<unsigned> dp(amount + 1, 0); 
+
+        for(int T = 0; T <= amount; ++T) {
+            dp[T] = (T % coins[0] == 0) ? 1 : 0; 
+        }
+
+        for(int idx = 1; idx < coins.size(); ++idx) {
+            for(int T = 0; T <= amount; ++T) {
+                unsigned take = 0;
+
+                if(coins[idx] <= T) {
+                    take = dp[T - coins[idx]]; 
+                }
+
+                dp[T] += take; 
+            }
+        }
+
+        return (int)dp[amount]; 
+    }
+
+    
+
+    
