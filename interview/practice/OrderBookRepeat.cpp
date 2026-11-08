@@ -78,17 +78,6 @@ class OrderBook {
         return side == Side::BUY ? levels.begin() : prev(levels.end()); 
     }
 
-    level_map::iterator get_best_level(level_map& levels, Side side) {
-        if(levels.empty()) {
-            return levels.end(); 
-        }
-        return side == Side::BUY ? prev(levels.end()) : levels.begin(); 
-    }
-
-    level_map::iterator next_by_side(Side side, level_map::iterator it) {
-        return side == Side::BUY ? prev(it) : next(it); 
-    }
-
     bool crosses(int price, Side side, int level_price) {
         return side == Side::BUY ? level_price <= price : level_price >= price; 
     }
@@ -169,25 +158,20 @@ public:
         return true;
     }
 
+
     vector<LevelData> depth(int n, Side side) {
-        auto& levels = get_levels_by_side(side); 
-        vector<LevelData> res; 
+    if (n <= 0) return {};
+    const auto& levels = get_levels_by_side(side);
 
-        if(n <= 0) {
-            return res; 
-        }
+    auto collect = [n](auto first, auto last) {
+        vector<LevelData> res;
+        for (; first != last && (int)res.size() < n; ++first)
+            res.push_back({(int)first->second.orders.size(), first->second.quantity, first->first});
+        return res;
+    };
 
-        int res_length = min(n, (int)levels.size()); 
-        res.reserve(res_length); 
-
-        auto it = get_best_level(levels, side); 
-        for(int i = 0; i < res_length; ++i) {
-            if (i > 0) it = next_by_side(side, it);
-
-            auto& level = it->second; 
-            res.push_back(LevelData{(int)level.orders.size(), level.quantity, it->first}); 
-        }
-        return res; 
+    return side == Side::BUY ? collect(levels.rbegin(), levels.rend())
+                             : collect(levels.begin(),  levels.end());
     }
 
     bool reduce(int id, int qty) {
